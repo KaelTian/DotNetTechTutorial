@@ -1,0 +1,39 @@
+@MiddlewareDemo_HostAddress = http://192.168.0.189:5146
+
+### 1. 主管道（应 200）
+GET {{MiddlewareDemo_HostAddress}}/
+
+### 2. 限流测试：下面 6 个请求完全一样，逐个点"发送请求"
+###    阈值是 5 次/10 秒，第 6 个应返回 429 + Retry-After 头
+GET {{MiddlewareDemo_HostAddress}}/
+
+###
+GET {{MiddlewareDemo_HostAddress}}/
+
+###
+GET {{MiddlewareDemo_HostAddress}}/
+
+###
+GET {{MiddlewareDemo_HostAddress}}/
+
+###
+GET {{MiddlewareDemo_HostAddress}}/
+
+###
+GET {{MiddlewareDemo_HostAddress}}/
+
+### 3. Map 分支（注意限流在 Map 之前注册，和主管道共享计数；
+###    如果第 2 步已触发限流，这里也会 429——这本身就是个观察点）
+
+###
+GET {{MiddlewareDemo_HostAddress}}/admin
+
+### 4. New()+Build() 子管道（同样共享限流）
+
+###
+GET {{MiddlewareDemo_HostAddress}}/sub
+
+### 5. 异常测试（验证修正后的日志顺序）
+
+###
+GET {{MiddlewareDemo_HostAddress}}/boom
