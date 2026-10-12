@@ -1,8 +1,11 @@
 <Solution>
   <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/BoxAndUnboxBench/BoxAndUnboxBench.csproj" Id="6c0af182-dd8f-41a3-b50c-f6fc787bbe19" />
     <Project Path="benchmarks/MiddlewareBench/MiddlewareBench.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/AsyncLazyDemo/AsyncLazyDemo.csproj" Id="f1f29330-3c4a-462a-b80a-4e2b9a1f9b0c" />
+    <Project Path="src/LockDemo/LockDemo.csproj" Id="93007302-c3fb-4c91-904e-0f5c90a9d9d9" />
     <Project Path="src/MiddlewareDemo/MiddlewareDemo.csproj" />
   </Folder>
 </Solution>
