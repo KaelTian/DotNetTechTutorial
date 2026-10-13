@@ -5,7 +5,9 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AsyncLazyDemo/AsyncLazyDemo.csproj" Id="f1f29330-3c4a-462a-b80a-4e2b9a1f9b0c" />
+    <Project Path="src/ComToTcpBridge/ComToTcpBridge.csproj" Id="6a953bf2-2d1d-4866-979f-4b3d8b2b0b83" />
     <Project Path="src/LockDemo/LockDemo.csproj" Id="93007302-c3fb-4c91-904e-0f5c90a9d9d9" />
     <Project Path="src/MiddlewareDemo/MiddlewareDemo.csproj" />
+    <Project Path="src/ModbusRtuMasterDemo/ModbusRtuMasterDemo.csproj" Id="abf26f50-ca08-4971-909b-46de1c177d5a" />
   </Folder>
 </Solution>
