@@ -141,9 +141,15 @@ namespace MiniTracking
 
         private void EmitUpdateSql(T captured,List<string> updateCols,Action<string> log)
         {
-            var sets = string.Join(", ", updateCols.Select(c => $"{c}=@{c}({Fmt(ColVal(c, captured))})"));
+            //var sets = string.Join(", ", updateCols.Select(c => $"{c}=@{c}({Fmt(ColVal(c, captured))})"));
+            //var where = string.Join(" AND ", Table.Primarys.Select(pk => $"{pk.CsName}=@{pk.CsName}"));
+            //log($" UPDATE {typeof(T).Name} SET {sets} WHERE {where}");
+            var sets = string.Join(", ", updateCols.Select(c => $"{c}=@{c}"));
             var where = string.Join(" AND ", Table.Primarys.Select(pk => $"{pk.CsName}=@{pk.CsName}"));
-            log($" UPDATE {typeof(T).Name} SET {sets} WHERE {where}");
+            var ps = string.Join(", ",
+                updateCols.Select(c => $"@{c}={Fmt(ColVal(c, captured))}")
+                    .Concat(Table.Primarys.Select(pk => $"@{pk.CsName}={Fmt(pk.Get!(captured))}")));
+            log($"    UPDATE {typeof(T).Name} SET {sets} WHERE {where}    -- params: {ps}");
         }
 
         private void ApplyToStore(T entity)

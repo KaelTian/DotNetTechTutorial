@@ -25,7 +25,7 @@ namespace MiniTracking
         // 主键拼字符串，作为状态字典的 key
         public static string? GetEntityKeyString(TableInfo tb, object entity)
         {
-            if (tb.Primarys.Any()) return null;
+            if (!tb.Primarys.Any()) return null;
             return string.Join("|", tb.Primarys.Where(pk => pk.Get != null).Select(pk => $"{pk.Get!(entity)}"));
         }
 

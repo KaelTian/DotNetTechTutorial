@@ -32,7 +32,37 @@ SqlLog.Clear();
 Console.WriteLine($"    SaveChanges 后内存库: {db.First(a => a.Id == 1)}");
 Console.WriteLine($"    状态字典里有 {set.TrackedCount} 条跟踪状态\n");
 
+Console.WriteLine("== 场景2：一个属性都没改，Update 应该是空操作 ==");
+var u2 = set.TrackFromStore(db.First(a => a.Id == 2));
+u2.Name = "李四";     // 赋了相同值，不算变化
+set.Update(u2);
+set.SaveChanges(Log);
+SqlLog.ForEach(Console.WriteLine);
+SqlLog.Clear();
+Console.WriteLine();
 
+Console.WriteLine("== 场景3：AsNoTracking 查询，UpdateFull 全量更新所有列 ==");
+var u3 = set.NoTrackingFromStore(db.First(a => a.Id == 1));
+Console.WriteLine($"    查出来的实体: {u3}");
+u3.Email = "zhangsf@x.com";   // 只改了这一个
+set.UpdateFull(u3);           // SQL 里却是全部 4 列
+set.SaveChanges(Log);
+SqlLog.ForEach(Console.WriteLine);
+SqlLog.Clear();
+Console.WriteLine($"    SaveChanges 后内存库: {db.First(a => a.Id == 1)}\n");
+
+Console.WriteLine("== 场景4：Attach 不查询直接更新（同样 diff）==");
+// 经过场景1和场景3，库里现在是 {张三丰, 32, zhangsf@x.com}
+// 构造一个手工实体只改 Name，Age/Email 与库里一致
+var u4 = new User { Id = 1, Name = "张三丰·改名", Age = 32, Email = "zhangsf@x.com" };
+set.Attach(db.First(a => a.Id == 1));  // 以库里当前值作为快照
+set.Update(u4);                        // diff 结果：只有 Name 变了
+set.SaveChanges(Log);
+SqlLog.ForEach(Console.WriteLine);
+Console.WriteLine($"    SaveChanges 后内存库: {db.First(a => a.Id == 1)}");
+
+Console.WriteLine("\n完成。接 SQLite：把 EmitUpdateSql 改成用 Microsoft.Data.Sqlite 执行即可，");
+Console.WriteLine("跟踪层一个字都不用动。");
 
 
 /// <summary>
@@ -42,11 +72,11 @@ public class User
 {
     public int Id { get; set; }
 
-    public string Name { get; set; } = string.Empty;
+    public string? Name { get; set; }
 
     public int Age { get; set; }
 
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
     public override string ToString() => $"User{{Id={Id},Name={Name},Age={Age},Email={Email}}}";
 }

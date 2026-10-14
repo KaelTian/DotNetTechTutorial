@@ -45,7 +45,7 @@ namespace MiniTracking
             // (obj, val) => ((TEntity)obj).Prop = (PropType)val
             var val = Expression.Parameter(typeof(object), "val");
             var setter = Expression.Lambda<Action<object, object>>(
-                Expression.AddAssign(
+                Expression.Assign(
                     Expression.Property(Expression.Convert(obj, p.DeclaringType!), p),
                     Expression.Convert(val, p.PropertyType)), obj, val).Compile();
 
