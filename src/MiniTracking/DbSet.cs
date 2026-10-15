@@ -8,14 +8,14 @@ namespace MiniTracking
     public class DbSet<T> where T : class, new()
     {
         public TableInfo Table;
-        private readonly List<T> _store; // 模拟数据库的内存表
+        private readonly IUserStore<T> _store;
 
         // FreeSql 同款: ConcurrentDictionary<主键字符串，EntityState>
         private readonly ConcurrentDictionary<string, EntityState> _states = new();
         // 待执行的命令队列（FreeSql 里是 EnqueueToDbContext，SaveChanges 统一执行）
         private readonly List<Action<Action<string>>> _pending = new();
 
-        public DbSet(TableInfo table, List<T> store)
+        public DbSet(TableInfo table, IUserStore<T> store)
         {
             Table = table;
             _store = store;
@@ -87,13 +87,8 @@ namespace MiniTracking
                     log($"    (无变更列，跳过 UPDATE，key={state.Key})");
                     return;
                 }
-                EmitUpdateSql(captured, changed, log);
-
-                // 1）把新值应用到"数据库"
-                ApplyToStore(captured);
-                // 2）把新值拷回快照，准备下一轮对比
-                // （FreeSql SaveChanges 后同样会刷新快照）
-                EntityUtil.MapEntityValue(Table, captured, (T)state.Snapshot!);
+                _store?.Update(captured, changed, log);              // 真实执行：只 UPDATE 变更列
+                EntityUtil.MapEntityValue(Table, captured, (T)state.Snapshot!);  // 快照前进
                 state.Time = DateTime.Now;
             });
         }
@@ -104,14 +99,18 @@ namespace MiniTracking
         public void UpdateFull(T entity)
         {
             var captured = CopyOf(entity);
+            //_pending.Add(log =>
+            //{
+            //    var all = Table.Columns.Where(c => !string.IsNullOrWhiteSpace(c.CsName))
+            //    .Select(c => c.CsName)
+            //    .ToList();
+            //    EmitUpdateSql(captured, all!, log);
+            //    ApplyToStore(captured);
+            //});
             _pending.Add(log =>
-            {
-                var all = Table.Columns.Where(c => !string.IsNullOrWhiteSpace(c.CsName))
-                .Select(c => c.CsName)
-                .ToList();
-                EmitUpdateSql(captured, all!, log);
-                ApplyToStore(captured);
-            });
+                    _store.Update(captured, Table.Columns
+                                                .Where(c => !string.IsNullOrWhiteSpace(c.CsName))
+                                                .Select(c => c.CsName).ToList()!, log));
         }
 
         // SaveChanges：统一执行队列（FreeSql 的 FlushCommand）
@@ -133,30 +132,6 @@ namespace MiniTracking
             var t = new T();
             EntityUtil.MapEntityValue(Table, entity, t);
             return t;
-        }
-
-        private object ColVal(string name, T e) => Table.Columns.First(c => c.CsName == name).Get!(e);
-
-        private static string Fmt(object v) => v == null ? "NULL" : (v is string ? $"'{v}'" : v.ToString()!);
-
-        private void EmitUpdateSql(T captured,List<string> updateCols,Action<string> log)
-        {
-            //var sets = string.Join(", ", updateCols.Select(c => $"{c}=@{c}({Fmt(ColVal(c, captured))})"));
-            //var where = string.Join(" AND ", Table.Primarys.Select(pk => $"{pk.CsName}=@{pk.CsName}"));
-            //log($" UPDATE {typeof(T).Name} SET {sets} WHERE {where}");
-            var sets = string.Join(", ", updateCols.Select(c => $"{c}=@{c}"));
-            var where = string.Join(" AND ", Table.Primarys.Select(pk => $"{pk.CsName}=@{pk.CsName}"));
-            var ps = string.Join(", ",
-                updateCols.Select(c => $"@{c}={Fmt(ColVal(c, captured))}")
-                    .Concat(Table.Primarys.Select(pk => $"@{pk.CsName}={Fmt(pk.Get!(captured))}")));
-            log($"    UPDATE {typeof(T).Name} SET {sets} WHERE {where}    -- params: {ps}");
-        }
-
-        private void ApplyToStore(T entity)
-        {
-            var key = EntityUtil.GetEntityKeyString(Table, entity);
-            var row = _store.FirstOrDefault(a => EntityUtil.GetEntityKeyString(Table, a) == key);
-            if (row != null) EntityUtil.MapEntityValue(Table, entity, row);
         }
 
         public int TrackedCount => _states.Count;
